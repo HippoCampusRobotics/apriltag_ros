@@ -69,8 +69,8 @@ estim_pose_f apriltag_orthogonal_iteration = [](apriltag_detection_t* const dete
     info.tagsize = tagsize;
     info.fx = P(0, 0);
     info.fy = P(1, 1);
-    info.cx = P(0, 1);
-    info.cy = P(1, 0);
+    info.cx = P(0, 2);
+    info.cy = P(1, 2);
 
     apriltag_pose_t pose;
     estimate_tag_pose(&info, &pose);
@@ -84,8 +84,8 @@ estim_pose_f apriltag_homography = [](apriltag_detection_t* const detection, con
     info.tagsize = tagsize;
     info.fx = P(0, 0);
     info.fy = P(1, 1);
-    info.cx = P(0, 1);
-    info.cy = P(1, 0);
+    info.cx = P(0, 2);
+    info.cy = P(1, 2);
 
     apriltag_pose_t pose;
     estimate_pose_for_tag_homography(&info, &pose);
