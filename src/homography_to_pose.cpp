@@ -50,11 +50,6 @@ estim_pose_f from_homography = [](const apriltag_detection_t* const detection, c
     R.col(1) = T.col(1).normalized();
     R.col(2) = R.col(0).cross(R.col(1));
 
-    // rotate by half rotation about x-axis to have z-axis
-    // point upwards orthogonal to the tag plane
-    R.col(1) *= -1;
-    R.col(2) *= -1;
-
     // the corner coordinates of the tag in the canonical frame are (+/-1, +/-1)
     // hence the scale is half of the edge size
     const Eigen::Vector3d tt = T.rightCols<1>() / ((T.col(0).norm() + T.col(0).norm()) / 2.0) * (size / 2.0);
@@ -96,10 +91,10 @@ estim_pose_f apriltag_homography = [](apriltag_detection_t* const detection, con
 estim_pose_f solve_pnp = [](apriltag_detection_t* const detection, const Mat3& P, double tagsize) -> geometry_msgs::msg::Transform {
     std::vector<cv::Point3d> objectPoints;
     const double half_tagsize = 0.5 * tagsize;
-    objectPoints.emplace_back(-half_tagsize, -half_tagsize, 0);
-    objectPoints.emplace_back(+half_tagsize, -half_tagsize, 0);
-    objectPoints.emplace_back(+half_tagsize, +half_tagsize, 0);
     objectPoints.emplace_back(-half_tagsize, +half_tagsize, 0);
+    objectPoints.emplace_back(+half_tagsize, +half_tagsize, 0);
+    objectPoints.emplace_back(+half_tagsize, -half_tagsize, 0);
+    objectPoints.emplace_back(-half_tagsize, -half_tagsize, 0);
 
     std::vector<cv::Point2d> imagePoints;
     double tag_x[4] = {-1, 1, 1, -1};
