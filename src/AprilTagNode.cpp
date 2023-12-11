@@ -7,6 +7,7 @@
 #else
 #include <cv_bridge/cv_bridge.h>
 #endif
+#include "time_keeper.hpp"
 #include <image_transport/camera_subscriber.hpp>
 #include <image_transport/image_transport.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -14,7 +15,6 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <tf2_ros/transform_broadcaster.h>
-
 // apriltag
 #include "tag_functions.hpp"
 #include <apriltag.h>
@@ -93,6 +93,7 @@ private:
     void onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_img, const sensor_msgs::msg::CameraInfo::ConstSharedPtr& msg_ci);
 
     rcl_interfaces::msg::SetParametersResult onParameter(const std::vector<rclcpp::Parameter>& parameters);
+    TimeKeeper time_keeper_;
 };
 
 RCLCPP_COMPONENTS_REGISTER_NODE(AprilTagNode)
@@ -108,6 +109,7 @@ AprilTagNode::AprilTagNode(const rclcpp::NodeOptions& options)
     pub_detections(create_publisher<apriltag_msgs::msg::AprilTagDetectionArray>("detections", rclcpp::QoS(1))),
     tf_broadcaster(this)
 {
+    time_keeper_.Enable();
     // read-only parameters
     const std::string tag_family = declare_parameter("family", "36h11", descr("tag family", true));
     tag_edge_size = declare_parameter("size", 1.0, descr("default tag size", true));
@@ -185,7 +187,6 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
     msg_detections.header = msg_img->header;
 
     std::vector<geometry_msgs::msg::TransformStamped> tfs;
-
     for(int i = 0; i < zarray_size(detections); i++) {
         apriltag_detection_t* det;
         zarray_get(detections, i, &det);
@@ -219,9 +220,21 @@ void AprilTagNode::onCamera(const sensor_msgs::msg::Image::ConstSharedPtr& msg_i
         // set child frame name by generic tag name or configured tag name
         tf.child_frame_id = tag_frames.count(det->id) ? tag_frames.at(det->id) : std::string(det->family->name) + ":" + std::to_string(det->id);
         const double size = tag_sizes.count(det->id) ? tag_sizes.at(det->id) : tag_edge_size;
+        time_keeper_.Start();
         tf.transform = estimate_pose(det, P, size);
+        time_keeper_.Stop();
 
         tfs.push_back(tf);
+    }
+    if(time_keeper_.Count() >= 1000) {
+        if(time_keeper_.Write(get_parameter("pose_method").as_string())) {
+            RCLCPP_INFO(get_logger(), "Written measurement file.");
+        }
+        else {
+            RCLCPP_ERROR(get_logger(), "Failed to write measurement file.");
+        }
+        time_keeper_.Reset();
+        time_keeper_.Disable();
     }
 
     pub_detections->publish(msg_detections);
