@@ -91,12 +91,10 @@ estim_pose_f apriltag_homography = [](apriltag_detection_t* const detection, con
 estim_pose_f solve_pnp = [](apriltag_detection_t* const detection, const Mat3& P, double tagsize) -> geometry_msgs::msg::Transform {
     std::vector<cv::Point3d> objectPoints;
     const double half_tagsize = 0.5 * tagsize;
-    // TODO(lennartalff): inverse the y-axis sign as soon as the yaw problem
-    // in our visual_localization package is fixed!
-    objectPoints.emplace_back(-half_tagsize, -half_tagsize, 0);
-    objectPoints.emplace_back(+half_tagsize, -half_tagsize, 0);
-    objectPoints.emplace_back(+half_tagsize, +half_tagsize, 0);
     objectPoints.emplace_back(-half_tagsize, +half_tagsize, 0);
+    objectPoints.emplace_back(+half_tagsize, +half_tagsize, 0);
+    objectPoints.emplace_back(+half_tagsize, -half_tagsize, 0);
+    objectPoints.emplace_back(-half_tagsize, -half_tagsize, 0);
 
     std::vector<cv::Point2d> imagePoints;
     double tag_x[4] = {-1, 1, 1, -1};
